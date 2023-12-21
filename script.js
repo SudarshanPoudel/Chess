@@ -15,9 +15,9 @@ let board = [
 
 // let board = [
 //     ['', '', '', '', '', '', '', ''],
-//     ['', 'BR', '', '', '', 'WR', '', ''],
 //     ['', '', '', '', '', '', '', ''],
-//     ['', '', '', '', '', 'WR', '', ''],
+//     ['', '', '', '', '', '', '', ''],
+//     ['', 'BP', '', 'WR', '', '', '', ''],
 //     ['', '', '', '', '', '', '', ''],
 //     ['', '', '', '', '', '', '', ''],
 //     ['', '', '', '', '', '', '', ''],
@@ -35,11 +35,12 @@ function displayBoard(){
             let box = document.createElement('div')
             box.classList = ['box']
             if((i+j)%2 != 0) box.classList.add('dark-box')
+            // box.innerHTML = i.toString() + j
             if(board[i][j] === '.'){
                 box.innerHTML = `<div class = "dot"></div>`
             }
             else if(board[i][j][0] == '*'){
-                box.innerHTML = `<img class = "piece" src = "Pieces/${board[i][j].replace('*', "")}.png"><div class = "dot"></div>`
+                box.innerHTML = `<img class = "piece" src = "Pieces/${board[i][j].replace('*', "")}.png"><div class = "circle"></div>`
             }
             else if(board[i][j] != ''){
                 box.innerHTML = `<img class = "piece" src = "Pieces/${board[i][j]}.png">`
@@ -54,16 +55,33 @@ function displayBoard(){
 }
 
 //Function to call when box is clicked
+let pieceClickedCord = [-1, -1]
 function boxClicked(i, j){
-    cleanDots();
-    displayBoard()
     if(board[i][j][0] === turn){
         displayPossibleMoves(i, j, board[i][j]);
+        pieceClickedCord = [i, j]
     }
+    else if(board[i][j] === '.' || board[i][j][0] === '*'){
+        movePiece(pieceClickedCord, [i, j]);
+    }
+
+    else{
+        cleanDots();
+    }
+    displayBoard();
+}
+
+function movePiece(startingCord, finalCord){
+    board[finalCord[0]][finalCord[1]] = board[startingCord[0]][startingCord[1]]
+    board[startingCord[0]][startingCord[1]] = ''
+    displayBoard();
+    cleanDots();
+    changeTurn();
 }
 
 
 function displayPossibleMoves(row, col, pieceNotation){
+    cleanDots()
     let possibleSpots = calculatePossibleMoves(row, col, pieceNotation)[0];
     let possibleCaptureSpots = calculatePossibleMoves(row, col, pieceNotation)[1];
     possibleSpots.forEach(e =>{
@@ -75,13 +93,17 @@ function displayPossibleMoves(row, col, pieceNotation){
     displayBoard()
 }
 
+
 function calculatePossibleMoves(row, col, pieceNotation){
     let oppositeType = 'W'
     if(pieceNotation[0] === 'W') oppositeType = 'B'
     
     let possibleMoves = [];
     let possibleCaptures = [];
-    if(pieceNotation[1] === 'R'){
+    let i, j;
+
+    // Possible Move for Rooks and Queens
+    if(pieceNotation[1] === 'R' || pieceNotation[1] === 'Q'){
         for(i = row+1; i < 8; i++){
             if(board[i][col][0] === oppositeType){
                 possibleMoves.push([i, col])
@@ -117,6 +139,112 @@ function calculatePossibleMoves(row, col, pieceNotation){
     }
 
 
+    //Possible Moves for Bishops and Queen
+    if(pieceNotation[1] === 'B' || pieceNotation[1] === 'Q'){
+        i = row; j = col;
+        while(i > 0 && j > 0){
+            i--;j--;
+            if(board[i][j][0] === oppositeType){
+                possibleMoves.push([i, j])
+                break;
+            }
+            else if(board[i][j] != '') break;
+            possibleMoves.push([i, j])
+        }
+
+        i = row; j = col;
+        while(i < 7 && j < 7){
+            i++;j++;
+            if(board[i][j][0] === oppositeType){
+                possibleMoves.push([i, j])
+                break;
+            }
+            else if(board[i][j] != '') break;
+            possibleMoves.push([i, j])
+        }
+
+        i = row; j = col;
+        while(i < 7 && j > 0){
+            i++;j--;
+            if(board[i][j][0] === oppositeType){
+                possibleMoves.push([i, j])
+                break;
+            }
+            else if(board[i][j] != '') break;
+            possibleMoves.push([i, j])
+        }
+        
+        i = row; j = col;
+        while(i > 0 && j < 7){
+            i--;j++;
+            if(board[i][j][0] === oppositeType){
+                possibleMoves.push([i, j])
+                break;
+            }
+            else if(board[i][j] != '') break;
+            possibleMoves.push([i, j])
+        }
+        
+    }
+
+
+    //Possible Moves for King
+    if(pieceNotation[1] === 'K'){
+        possibleMoves.push([row+1, col+1])
+        possibleMoves.push([row+1, col])
+        possibleMoves.push([row+1, col-1])
+        possibleMoves.push([row, col+1])
+        possibleMoves.push([row, col-1])
+        possibleMoves.push([row-1, col])
+        possibleMoves.push([row-1, col+1])
+        possibleMoves.push([row-1, col-1])
+
+        for (let i = possibleMoves.length - 1; i >= 0; i--) {
+            const e = possibleMoves[i];
+            if (e[0] < 0 || e[0] > 7 || e[1] < 0 || e[1] > 7 || board[e[0]][e[1]][0] == pieceNotation[0] || willKingBeAtCheck(e[0], e[1])) {
+                possibleMoves.splice(i, 1);
+            }
+        }
+
+    }
+
+    //Possible moves for Pawns
+    if(pieceNotation[1] === 'P'){
+        if(pieceNotation[0] === 'W'){
+            if(board[row-1][col] === '') possibleMoves.push([row - 1, col]);
+            if(row == 6 && board[row-1][col] === '' && board[row-2][col] === '') possibleMoves.push([row - 2, col]);
+            if(col > 0 && board[row-1][col-1][0] === oppositeType) possibleMoves.push([row - 1, col-1]);
+            if(col < 7 && board[row-1][col+1][0] === oppositeType) possibleMoves.push([row - 1, col+1]);
+        }
+        else{
+            if(board[row+1][col] === '') possibleMoves.push([row + 1, col]);
+            if(row == 1 && board[row+1][col] === '' && board[row+2][col] === '') possibleMoves.push([row + 2, col]);
+            if(col > 0 && board[row+1][col-1][0] === oppositeType) possibleMoves.push([row + 1, col-1]);
+            if(col < 7 && board[row+1][col+1][0] === oppositeType) possibleMoves.push([row + 1, col+1]);
+        }
+
+    }
+
+    //Possible Moves of Knights
+    if(pieceNotation[1] === 'N'){
+        possibleMoves.push([row+2, col+1])
+        possibleMoves.push([row+2, col-1])
+        possibleMoves.push([row-2, col+1])
+        possibleMoves.push([row-2, col-1])
+        possibleMoves.push([row+1, col+2])
+        possibleMoves.push([row+1, col-2])
+        possibleMoves.push([row-1, col+2])
+        possibleMoves.push([row-1, col-2])
+
+        for (let i = possibleMoves.length - 1; i >= 0; i--) {
+            const e = possibleMoves[i];
+            if (e[0] < 0 || e[0] > 7 || e[1] < 0 || e[1] > 7 || board[e[0]][e[1]][0] == pieceNotation[0]) {
+                possibleMoves.splice(i, 1);
+            }
+        }
+
+    }
+
     possibleMoves.forEach(e => {
         if(board[e[0]][e[1]] != ''){
             possibleCaptures.push(e);
@@ -125,9 +253,13 @@ function calculatePossibleMoves(row, col, pieceNotation){
     return [possibleMoves, possibleCaptures];
 }
 
+function changeTurn(){
+    if(turn === 'W') turn = 'B'
+    else turn = 'W'
+}
 
-function displyCaptureAble(i, j){
-
+function willKingBeAtCheck(i, j){
+    return false;
 }
 
 
