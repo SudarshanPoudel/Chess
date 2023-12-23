@@ -1,29 +1,30 @@
 let boardContainer = document.querySelector('#board')
-let turn = 'B'
+let turn = 'W'
 let whitePieces = ['WK', 'WQ', 'WB', 'WN', 'WR', 'WP']
 let blackPieces = ['BK', 'BQ', 'BB', 'BN', 'BR', 'BP']
+let isGameOver = false;
 //Board Array 
-// let board = [
-//     ['BR', 'BN', 'BB', 'BQ', 'BK', 'BB', 'BN', 'BR'],
-//     ['BP', 'BP', 'BP', 'BP', 'BP', 'BP', 'BP', 'BP'],
-//     ['', '', '', '', '', '', '', ''],
-//     ['', '', '', '', '', '', '', ''],
-//     ['', '', '', '', '', '', '', ''],
-//     ['', '', '', '', '', '', '', ''],
-//     ['WP', 'WP', 'WP', 'WP', 'WP', 'WP', 'WP', 'WP'],
-//     ['WR', 'WN', 'WB', 'WQ', 'WK', 'WB', 'WN', 'WR']
-// ]
-
 let board = [
-    ['BK', 'BR', '', '', '', '', 'WQ', ''],
-    ['', '', '', '', '', '', '', ''],
-    ['', '', '', '', '', '', '', ''],
-    ['', 'BP', '', '', '', '', '', ''],
-    ['', '', '', 'WQ', '', '', '', ''],
+    ['BR', 'BN', 'BB', 'BQ', 'BK', 'BB', 'BN', 'BR'],
+    ['BP', 'BP', 'BP', 'BP', 'BP', 'BP', 'BP', 'BP'],
     ['', '', '', '', '', '', '', ''],
     ['', '', '', '', '', '', '', ''],
     ['', '', '', '', '', '', '', ''],
+    ['', '', '', '', '', '', '', ''],
+    ['WP', 'WP', 'WP', 'WP', 'WP', 'WP', 'WP', 'WP'],
+    ['WR', 'WN', 'WB', 'WQ', 'WK', 'WB', 'WN', 'WR']
 ]
+
+// let board = [
+//     ['BK', 'BR', '', '', '', '', 'WQ', ''],
+//     ['', '', '', '', '', '', '', ''],
+//     ['', '', '', '', '', '', '', ''],
+//     ['', 'BP', '', '', '', '', '', ''],
+//     ['', '', '', 'WQ', '', '', '', ''],
+//     ['', '', '', '', '', '', '', ''],
+//     ['', '', '', '', '', '', '', ''],
+//     ['', '', '', '', '', '', '', ''],
+// ]
 
 
 
@@ -58,29 +59,44 @@ function displayBoard(){
 //Function to call when box is clicked
 let pieceClickedCord = [-1, -1]
 function boxClicked(i, j){
-    if(board[i][j][0] === turn){
-        displayPossibleMoves(i, j, board[i][j]);
-        pieceClickedCord = [i, j]
+    if(!isGameOver){
+        if(board[i][j][0] === turn){
+            displayPossibleMoves(i, j, board[i][j]);
+            pieceClickedCord = [i, j]
+        }
+        else if(board[i][j] === '.' || board[i][j][2] === '*'){
+            movePiece(pieceClickedCord, [i, j]);
+        }
+    
+        else{
+            cleanDots();
+        }
+        displayBoard();
     }
-    else if(board[i][j] === '.' || board[i][j][2] === '*'){
-        movePiece(pieceClickedCord, [i, j]);
-    }
-
-    else{
-        cleanDots();
-    }
-    displayBoard();
 }
 
-function movePiece(startingCord, finalCord){
+function movePiece(startingCord, finalCord, isToJustCheck = false){
     board[finalCord[0]][finalCord[1]] = board[startingCord[0]][startingCord[1]]
     board[startingCord[0]][startingCord[1]] = ''
-    displayBoard();
-    cleanDots();
-    changeTurn();
+    pawnpromotion();
+    if(!isToJustCheck){
+        console.log(startingCord, finalCord)
+
+        //Check for Game Over
+        if(board[finalCord[0]][finalCord[1]].includes('WK')){
+            alert("black Wins")
+            isGameOver = true
+        } else if(board[finalCord[0]][finalCord[1]].includes('BK')){
+            alert("white Wins")
+            isGameOver = true
+        }
+        displayBoard();
+        cleanDots();
+        changeTurn();
+    }
 }
 
-
+// Funcion That displayes possible moves when clicked
 function displayPossibleMoves(row, col, pieceNotation){
     cleanDots()
     let possibleSpots = calculatePossibleMoves(row, col, pieceNotation)[0];
@@ -94,7 +110,7 @@ function displayPossibleMoves(row, col, pieceNotation){
     displayBoard()
 }
 
-
+//Function to calculate possible moves for specific piece at specific position
 function calculatePossibleMoves(row, col, pieceNotation){
     let oppositeType = 'W'
     if(pieceNotation[0] === 'W') oppositeType = 'B'
@@ -202,7 +218,7 @@ function calculatePossibleMoves(row, col, pieceNotation){
 
         for (let i = possibleMoves.length - 1; i >= 0; i--) {
             const e = possibleMoves[i];
-            if (e[0] < 0 || e[0] > 7 || e[1] < 0 || e[1] > 7 || board[e[0]][e[1]][0] == pieceNotation[0] || isPieceCaptureAble(pieceNotation, e)) {
+            if (e[0] < 0 || e[0] > 7 || e[1] < 0 || e[1] > 7 || board[e[0]][e[1]][0] == pieceNotation[0]) {
                 possibleMoves.splice(i, 1);
             }
         }
@@ -245,15 +261,11 @@ function calculatePossibleMoves(row, col, pieceNotation){
         }
 
     }
-    for (let i = possibleMoves.length - 1; i >= 0; i--) {
-        const e = possibleMoves[i];
-        if (willKingbeAtCheck(pieceNotation, [row, col], e)) {
-            possibleMoves.splice(i, 1);
-        }
+    possibleMoves.forEach(e =>{
         if(board[e[0]][e[1]] != ''){
             possibleCaptures.push(e);
         }
-    }
+    })
 
 
     return [possibleMoves, possibleCaptures];
@@ -265,18 +277,18 @@ function possibleMove(pieceNotation, currentPosition, possibleNextPositions){
     this.nextMoves = possibleNextPositions;
 }
 
-function calculateAllPossibleMoves(){
+function calculateAllPossibleMoves(type){
     let allPossibleMoves = [];
     let nextMoves;
     for(let i = 0; i < 8; i++){
         for(let j = 0; j < 8; j++){
             e = board[i][j];
-            if(turn === 'W' && whitePieces.includes(e)){
+            if(type === 'W' && whitePieces.includes(e)){
                 nextMoves = calculatePossibleMoves(i, j, e)[0]
                 if(nextMoves.length > 0)
                 allPossibleMoves.push(new possibleMove(e, [i, j],nextMoves))
             }
-            if(turn === 'B' && blackPieces.includes(e)){
+            if(type === 'B' && blackPieces.includes(e)){
                 nextMoves = calculatePossibleMoves(i, j, e)[0]
                 if(nextMoves.length > 0)
                 allPossibleMoves.push(new possibleMove(e, [i, j], nextMoves))
@@ -288,46 +300,16 @@ function calculateAllPossibleMoves(){
 }
 
 function changeTurn(){
-    if(turn === 'W') turn = 'B'
+    if(turn === 'W'){
+        turn = 'B'
+        setTimeout(() => {
+            computerMove()
+
+        }, 100);
+    } 
     else turn = 'W'
 }
 
-function isPieceCaptureAble(pieceNotation, checkPosition){
-    let iscapturable = false;
-    let tempBoard = board;
-    let opponentType = pieceNotation[0] === 'W' ? 'B' : 'W'
-    let opponentPieces = allPiecesInBoard(board, opponentType)
-    for(let i = 0; i < opponentPieces.length; i++){
-        let e = opponentPieces[i]
-        pieceMoves = calculatePossibleMoves(e.position[0], e.position[1], e.name)[0];
-        if(JSON.stringify(pieceMoves).includes(JSON.stringify(checkPosition))){
-            iscapturable = true;
-            board = tempBoard
-            break
-        }
-    }
-    return iscapturable
-}
-
-function willKingbeAtCheck(pieceNotation, currentPos, nextPos){
-    let willKing = false
-    let king = pieceNotation[0] === 'W' ? 'WK' : 'BK'
-    let kingPos = [-1, -1]
-    for(let i = 0; i < 8; i++){
-        for(let j = 0; j < 8; j++){
-            if(board[i][j] === king){
-                kingPos = [i, j];
-                break;
-            }
-        }
-    }
-    let tempBoard = board;
-    board[nextPos[0]][nextPos[1]] = board[currentPos[0]][currentPos[1]]
-    board[currentPos[0]][currentPos[1]] = ''
-    willKing = isPieceCaptureAble(king, kingPos);
-    board = tempBoard
-    return willKing
-}
 
 function piece(pieceName, position){
     this.name = pieceName;
@@ -356,5 +338,13 @@ function cleanDots(){
             if(board[i][j] === '.') board[i][j] = ''
             else if(board[i][j][2] === '*') board[i][j] = board[i][j].replace('*', '')
         }
+    }
+}
+
+
+function pawnpromotion(){
+    for(let i = 0; i < 8; i++){
+        if(board[0][i] === 'WP') board[0][i] = 'WQ'
+        if(board[7][i] === 'BP') board[0][i] = 'BQ'
     }
 }
