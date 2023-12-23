@@ -1,28 +1,29 @@
 let boardContainer = document.querySelector('#board')
-let turn = 'W'
-
+let turn = 'B'
+let whitePieces = ['WK', 'WQ', 'WB', 'WN', 'WR', 'WP']
+let blackPieces = ['BK', 'BQ', 'BB', 'BN', 'BR', 'BP']
 //Board Array 
-let board = [
-    ['BR', 'BN', 'BB', 'BQ', 'BK', 'BB', 'BN', 'BR'],
-    ['BP', 'BP', 'BP', 'BP', 'BP', 'BP', 'BP', 'BP'],
-    ['', '', '', '', '', '', '', ''],
-    ['', '', '', '', '', '', '', ''],
-    ['', '', '', '', '', '', '', ''],
-    ['', '', '', '', '', '', '', ''],
-    ['WP', 'WP', 'WP', 'WP', 'WP', 'WP', 'WP', 'WP'],
-    ['WR', 'WN', 'WB', 'WQ', 'WK', 'WB', 'WN', 'WR']
-]
-
 // let board = [
-//     ['', '', '', '', '', '', '', ''],
-//     ['', '', '', '', '', '', '', ''],
-//     ['', '', '', '', '', '', '', ''],
-//     ['', 'BP', '', 'WR', '', '', '', ''],
+//     ['BR', 'BN', 'BB', 'BQ', 'BK', 'BB', 'BN', 'BR'],
+//     ['BP', 'BP', 'BP', 'BP', 'BP', 'BP', 'BP', 'BP'],
 //     ['', '', '', '', '', '', '', ''],
 //     ['', '', '', '', '', '', '', ''],
 //     ['', '', '', '', '', '', '', ''],
 //     ['', '', '', '', '', '', '', ''],
+//     ['WP', 'WP', 'WP', 'WP', 'WP', 'WP', 'WP', 'WP'],
+//     ['WR', 'WN', 'WB', 'WQ', 'WK', 'WB', 'WN', 'WR']
 // ]
+
+let board = [
+    ['BK', 'BR', '', '', '', '', 'WQ', ''],
+    ['', '', '', '', '', '', '', ''],
+    ['', '', '', '', '', '', '', ''],
+    ['', 'BP', '', '', '', '', '', ''],
+    ['', '', '', 'WQ', '', '', '', ''],
+    ['', '', '', '', '', '', '', ''],
+    ['', '', '', '', '', '', '', ''],
+    ['', '', '', '', '', '', '', ''],
+]
 
 
 
@@ -39,7 +40,7 @@ function displayBoard(){
             if(board[i][j] === '.'){
                 box.innerHTML = `<div class = "dot"></div>`
             }
-            else if(board[i][j][0] == '*'){
+            else if(board[i][j][2] == '*'){
                 box.innerHTML = `<img class = "piece" src = "Pieces/${board[i][j].replace('*', "")}.png"><div class = "circle"></div>`
             }
             else if(board[i][j] != ''){
@@ -61,7 +62,7 @@ function boxClicked(i, j){
         displayPossibleMoves(i, j, board[i][j]);
         pieceClickedCord = [i, j]
     }
-    else if(board[i][j] === '.' || board[i][j][0] === '*'){
+    else if(board[i][j] === '.' || board[i][j][2] === '*'){
         movePiece(pieceClickedCord, [i, j]);
     }
 
@@ -86,7 +87,7 @@ function displayPossibleMoves(row, col, pieceNotation){
     let possibleCaptureSpots = calculatePossibleMoves(row, col, pieceNotation)[1];
     possibleSpots.forEach(e =>{
         if(JSON.stringify(possibleCaptureSpots).includes(JSON.stringify(e))){
-            board[e[0]][e[1]] = '*' +  board[e[0]][e[1]]
+            board[e[0]][e[1]] = board[e[0]][e[1]] + '*'
         }
         else board[e[0]][e[1]] = '.'
     })
@@ -201,7 +202,7 @@ function calculatePossibleMoves(row, col, pieceNotation){
 
         for (let i = possibleMoves.length - 1; i >= 0; i--) {
             const e = possibleMoves[i];
-            if (e[0] < 0 || e[0] > 7 || e[1] < 0 || e[1] > 7 || board[e[0]][e[1]][0] == pieceNotation[0] || willKingBeAtCheck(e[0], e[1])) {
+            if (e[0] < 0 || e[0] > 7 || e[1] < 0 || e[1] > 7 || board[e[0]][e[1]][0] == pieceNotation[0] || isPieceCaptureAble(pieceNotation, e)) {
                 possibleMoves.splice(i, 1);
             }
         }
@@ -244,13 +245,46 @@ function calculatePossibleMoves(row, col, pieceNotation){
         }
 
     }
-
-    possibleMoves.forEach(e => {
+    for (let i = possibleMoves.length - 1; i >= 0; i--) {
+        const e = possibleMoves[i];
+        if (willKingbeAtCheck(pieceNotation, [row, col], e)) {
+            possibleMoves.splice(i, 1);
+        }
         if(board[e[0]][e[1]] != ''){
             possibleCaptures.push(e);
         }
-    })
+    }
+
+
     return [possibleMoves, possibleCaptures];
+}
+
+function possibleMove(pieceNotation, currentPosition, possibleNextPositions){
+    this.pieceName = pieceNotation;
+    this.position = currentPosition;
+    this.nextMoves = possibleNextPositions;
+}
+
+function calculateAllPossibleMoves(){
+    let allPossibleMoves = [];
+    let nextMoves;
+    for(let i = 0; i < 8; i++){
+        for(let j = 0; j < 8; j++){
+            e = board[i][j];
+            if(turn === 'W' && whitePieces.includes(e)){
+                nextMoves = calculatePossibleMoves(i, j, e)[0]
+                if(nextMoves.length > 0)
+                allPossibleMoves.push(new possibleMove(e, [i, j],nextMoves))
+            }
+            if(turn === 'B' && blackPieces.includes(e)){
+                nextMoves = calculatePossibleMoves(i, j, e)[0]
+                if(nextMoves.length > 0)
+                allPossibleMoves.push(new possibleMove(e, [i, j], nextMoves))
+            }
+        }
+    }
+    return allPossibleMoves;
+
 }
 
 function changeTurn(){
@@ -258,8 +292,61 @@ function changeTurn(){
     else turn = 'W'
 }
 
-function willKingBeAtCheck(i, j){
-    return false;
+function isPieceCaptureAble(pieceNotation, checkPosition){
+    let iscapturable = false;
+    let tempBoard = board;
+    let opponentType = pieceNotation[0] === 'W' ? 'B' : 'W'
+    let opponentPieces = allPiecesInBoard(board, opponentType)
+    for(let i = 0; i < opponentPieces.length; i++){
+        let e = opponentPieces[i]
+        pieceMoves = calculatePossibleMoves(e.position[0], e.position[1], e.name)[0];
+        if(JSON.stringify(pieceMoves).includes(JSON.stringify(checkPosition))){
+            iscapturable = true;
+            board = tempBoard
+            break
+        }
+    }
+    return iscapturable
+}
+
+function willKingbeAtCheck(pieceNotation, currentPos, nextPos){
+    let willKing = false
+    let king = pieceNotation[0] === 'W' ? 'WK' : 'BK'
+    let kingPos = [-1, -1]
+    for(let i = 0; i < 8; i++){
+        for(let j = 0; j < 8; j++){
+            if(board[i][j] === king){
+                kingPos = [i, j];
+                break;
+            }
+        }
+    }
+    let tempBoard = board;
+    board[nextPos[0]][nextPos[1]] = board[currentPos[0]][currentPos[1]]
+    board[currentPos[0]][currentPos[1]] = ''
+    willKing = isPieceCaptureAble(king, kingPos);
+    board = tempBoard
+    return willKing
+}
+
+function piece(pieceName, position){
+    this.name = pieceName;
+    this.type = pieceName[0];
+    this.position = position;
+}
+
+function allPiecesInBoard(board, type){
+    let pieces = []
+    for(let i = 0; i < 8; i++){
+        for(let j = 0; j < 8; j++){
+            e = board[i][j]
+            if(e[0] === type && (whitePieces.includes(e) || blackPieces.includes(e))){
+                pieces.push(new piece(e, [i, j]))
+            }
+        }
+    }
+
+    return pieces;
 }
 
 
@@ -267,7 +354,7 @@ function cleanDots(){
     for(let i = 0; i < 8; i++){
         for(let j = 0; j < 8; j++){
             if(board[i][j] === '.') board[i][j] = ''
-            else if(board[i][j][0] === '*') board[i][j] = board[i][j].replace('*', '')
+            else if(board[i][j][2] === '*') board[i][j] = board[i][j].replace('*', '')
         }
     }
 }

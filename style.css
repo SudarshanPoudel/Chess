@@ -40,14 +40,14 @@ body{
     height: 30%;
     width: 30%;
     border-radius: 100%;
-    background-color: #00000047;
+    background-color: #00000030;
     position: absolute;
 }
 .circle{
     height: 75%;
     width: 75%;
     border-radius: 100%;
-    border: 6px solid #00000047;
+    border: 3px solid #00000030;
     position: absolute;
     z-index: 0;
 }
